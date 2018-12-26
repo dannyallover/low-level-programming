@@ -1,0 +1,170 @@
+//
+compiling assembly code:
+as  --gstabs --32 -o forSum.o forSum.s
+ls // you will see forSum.o
+ld -m elf_i386 -o forSum.out forSum.o
+ls // you will see forSum.out
+
+debugger stuff:
+p $ecx
+# prints the value in a register, in this case ecx
+info registers
+# see what's in all the registers
+p ((int*)&x)[0]@10
+# see what's in array # im still confused by this portion
+
+/*
+
+for(initialization; condition; update expression) {
+  body
+}
+
+for(int i = 0; i < some_number; ++i) {
+  body
+}
+
+rewrite for loop to be
+
+for(initialization; true; update expression) {
+  if(! condition) {
+    break;
+  }
+  body
+}
+
+*/
+
+
+#initialization
+#int i = 0
+#pick a register for i
+#Let EAX be i
+movl $0, %eax # remember 0 is a constant so you need a dollar sign
+
+#Let EBX be some_number
+#in this example ebx will be 10
+movl $10, %ebx
+
+for_start:
+#check the condition
+#conditions have to be compared against 0
+#i < some_number == i - some_number < 0
+#negate the condition i - some_number >= 0
+
+cmpl %ebx, %eax # this is like eax - some_number
+# you leave when the opposite is true
+jge for_end
+
+#body
+
+#update
+incl %eax
+jmp for_start
+
+for_end:
+
+//////////////////////////////////////
+
+/*
+
+do{
+
+  body
+
+}while(condition)
+
+*/
+
+#initialization
+#int i = 0
+#pick a register for i
+#Let EAX be i
+movl $0, %eax # remember 0 is a constant so you need a dollar sign
+
+#Let EBX be some_number
+#in this example ebx will be 10
+movl $10, %ebx
+
+
+do_while_start:
+  #body
+
+  #compare against 0: i < some_number == i - some_number < 0
+  cmpl %ebx, %eax
+  jl do_while_start
+do_while_end:
+
+///////////////////////
+
+/*
+
+  if(cond1){
+    code1
+  }
+  else if(cond2){
+    code2
+  }
+  else if(cond3){
+    code3
+  }
+  ...
+
+  else{
+    else code
+
+  }
+
+  if(a < 5){
+    b = 100
+  }
+  else if(a < 10){
+    b = 200
+  }
+  else if(a < 10){
+    b = 300
+  }
+  else{
+    b = 99
+  }
+*/
+
+#a is eax
+#b is ebx
+
+
+if1:
+  #compare against 0. a < 5 == a - 5 < 0
+  #negate condition: a - 5 >= 0
+  cmpl $5, %eax
+  jge if2
+  #body of if1
+  movl $100, %ebx
+  jmp end_if_else_statement
+
+if2: #a < 10
+  #compare against 0. a < 10 == a - 10 < 0
+  #negate condition a - 10 >= 0
+  cmpl $10, %eax
+  jge if3
+  #body of if2
+  movl $200, %ebx
+  jmp end_if_else_statement
+
+if3: #a < 20
+  #compare against 0. a < 20 == a - 20 < 0
+  #negate condition a - 20 >= 0
+  cmpl $20, %eax
+  jge else
+  #body of if3
+  movl $300, %ebx
+  jmp end_if_else_statement
+
+else:
+  #else body
+  movl $99, %ebx
+
+end_if_else_statement:
+
+#note you could use jl (or something like that - it stands for jump if less)
+#but jge is nicer because it falls down in the code rather than jump up
+#and jump back down

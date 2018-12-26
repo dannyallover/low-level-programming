@@ -1,0 +1,15 @@
+Lets say we want to call the function foo(7, 10, 11)
+but foo is actually a system call. Write assembly
+code to call foo. Foo has a system call number 25
+movl $25, %eax
+movl $7, %ebx
+movl $10, %ecx
+movl $11, %edx
+int $0x80
+syscall bar(12, 18) syscall # 13
+movl $13, %eax
+movl $12, %ebx
+movl $18, %ecx
+int $0x80
+# he went over how assembly works
+# we then did some final review

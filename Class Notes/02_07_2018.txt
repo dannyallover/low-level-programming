@@ -1,0 +1,77 @@
+// labels mark constant locations in memory and so can appear in the d field
+// since labels are constant you can do arithmetic with them
+// label + 5
+// label + 4 * 2
+
+// d(o, i, s) o is the offset, s is the scale
+// memory[d + o + i * s]
+// d is constant
+// o and i are registers
+// s is 1, 2, 4 or maybe 8
+// each field is optional if not given
+// d = 0
+// o = 0
+// i = 0
+// s = 1
+
+// at most one operand can be in memory
+// the above means that the other thing has to be a constant or a register
+// so you cant say I want to move something from memory loc. 1 to memory loc. 2
+// you have to take what's in memory loc. 1 and put it into a register
+// and then take what's in the register and move it into memory loc. 2
+// data:
+//  len: 100
+//    .long 5 # we made space for 4 bytes and the value was initialized to 5
+//  fnum: 104
+//    .float 2.25 # 4 bytes
+//  name: 108
+//    .string "Matthew"
+//  nums: 200
+//    .long 2 - 200
+//    .long 7 - 204
+//    .long 12 - 208
+//    .long 18 - 212
+// eax = len
+// movl len, %eax #len is using the d field, equivalent to eax = 5 = mem[len]
+// movl $len, %ebx #this confuses students, equivalent to ebx = &len = 100
+// movl 0, %ecx #copy what's at address 0 to ecx (null=zero in c), ecx = *NULL
+// movl $name, %esi #esi = name b/c name is the address and that's what we want
+// addl $20, %eax #eax = 25
+// addl $50, len
+// subl $20, (%ebx) # *ebx -= 20 now len = 80
+// name[i] = *(name + i) #assume that i is in ecx
+// name[i] = 'A'
+// movb $'A', name(,%ecx)
+
+// nums[i] = 99
+// movl $99, nums(,%exc,4)
+
+// name[3] = 'Z'
+// *(name + 3)
+// movb $'Z', name + 3
+
+// nums[3] = 27
+// movl $27, (nums + 3 * 4)
+
+// movl $name, %eax #eax is a character pointer
+// ecx = i
+// dl = name[i] #we don't want to use the label though - *(name + i)
+// movb (%eax, %ecx, 1), %dl #o field is used when address is stored in reg.
+
+// movl $nums, %eax #ebx is an integer pointer
+// edx = nums[i]
+// movl (%ebx, %ecx. 4), %edx
+
+// dl = names[i + 7]
+// movl 7(%eax, %ecx, 1), %dl
+
+// edx = names[i + 7]
+// movl 7*4(%ebx, %ecx, 4)
+// %eax is name, %ecx is i
+
+// challenge:
+// dl = names[i + j + 3]
+// ecx is i and esi is j
+
+** what does it exactly mean when we say that we can't have more than confuses
+operand in memory

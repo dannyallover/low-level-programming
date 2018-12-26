@@ -1,0 +1,181 @@
+x:
+  .long 7 100
+  .long 12 104
+  .long 33 108
+  .long -7 112
+  .long 29 116
+
+  d = x[a+b]
+  # d is in edx, a is in eax, b in ebx
+  # lets also say a = 1 and b = 2
+  movl x(%eax, %ebx, 4)
+  # so 100 + 1 + 2 * 4 = 109
+  # problem the 1 needs to be multiplied by the 4 as well
+
+  movl %eax, %ecx
+  addl %ebx, %ecx
+  movl x(, %ecx, 4), %edx
+
+  edx = x[a + b + 1]
+  # esi has x in it, eax has a in it, ebx has b in it
+  movl $x, %esi
+  movl %eax, %ecx
+  addl %ebx, %ecx
+  movl 1*4(%esi, %ecx, 4), %edx
+
+  one big chunk
+  int ar[3][4]
+  edx ar[3][b]
+  edx = ar[a][b] == edx = *(ar + a * 4 + b)
+  movl %eax, %ecx #ecx = a
+  shll $2, %ecx #eac = a * 4
+  addl %ebx, %ecx #ecx = a * 4 + b
+  movl ar(, %ecx, 4), %edx
+
+  array of arrays
+  int **ar; ar[a][b]
+  *(*(ar + a) + b)
+  movl ar(,%eax, 4), %esi
+  movl (%esi, %ebx, 4), %edx
+
+  // matAdd.s
+
+
+
+  /*
+
+   void matAdd(int** A, int** B, int numRows, int numCols, int** C){
+   	int i, j;
+   	for(i = 0; i < numRows; ++i){
+   		for(j = 0; j < numCols; ++j){
+   			C[i][j] = A[i][j] + B[i][j];
+   		}
+
+   	}
+   }
+  */
+
+  .global _start # you always need this
+  .equ ws, 4 # so there isn't a magic number 4 floating around everywhere
+  .equ numRows, 3
+  .equ numCols, 4
+
+  .data
+  	A:
+  		.long Arow0 # pointer to row 1
+  		.long Arow1 # pointer to row 2
+  		.long Arow2 # pointer to row 3
+  #---------------
+  	Arow0:
+  		.rept numCols # all the elements in row 1 equal to 1
+  			.long 1
+  		.endr
+
+  	Arow1:
+  		.rept numCols # all the elements in row 2 equal to 2
+  			.long 2
+  		.endr
+
+  	Arow2:
+  		.rept numCols # all the elements in row 3 equal to 3
+  			.long 3
+  		.endr
+
+  	B:
+  		.long Brow0
+  		.long Brow1
+  		.long Brow2
+
+  	Brow0:
+  		.long 2
+  		.long 3
+  		.long 4
+  		.long 5
+
+  	Brow1:
+  		.long 6
+  		.long 7
+  		.long 8
+  		.long 9
+
+  	Brow2:
+  		.long 10
+  		.long 11
+  		.long 12
+  		.long 13
+  	C:
+  		.long Crow0
+  		.long Crow1
+  		.long Crow2
+
+  		Crow0:
+  			.space numCols * ws # makes space but the space is uninitialized
+  		Crow1:
+  			.space numCols * ws
+  		Crow2:
+  			.space numCols * ws
+
+  	i:
+  		.long 0
+
+  .text
+  _start: # our code begins here
+  	#EAX will be i
+  	#EBX will be j
+  	#ECX will be A[i][j] + B[i][j]
+  	#EDX will be a temp
+
+  	#for(i = 0; i < numRows; ++i)
+  	movl $0, %eax #i = 0
+  	outer_loop:
+  		#i < numRows
+  		#i - numRows < 0
+  		#neg: i - numRows >= 0
+  		cmpl $numRows, %eax #i - numRows
+  		jge end_outer_loop
+  		#for(j = 0; j < numCols; ++j)
+  		movl $0, %ebx #j = 0
+  		inner_loop:
+  			#j < numCols
+  			#j - numCols < 0
+  			#neg: j - nCols >= 0
+  			cmpl $numCols, %ebx # j - numCols
+  			jge end_inner_loop #j - nCols >= 0
+
+  			#C[i][j] = A[i][j] + B[i][j];
+  			#*(*(C + i)+ j) = *(*(A + i)+ j) + *(*(B + i)+ j)
+
+  			# *(*(A + i) + j)
+  			movl A(, %eax, ws), %ecx #ecx = A[i] = *(A + i)
+  			movl (%ecx, %ebx, ws), %ecx #ecx = A[i][j]
+
+  			#*(*(B + i)+ j)
+  			movl B(, %eax, ws), %edx #edx = B[i]
+  			addl (%edx, %ebx, ws), %ecx #ecx = A[i][j] + B[i][j]
+
+  			#C[i][j] = A[i][j] + B[i][j]
+  			movl C(, %eax, ws), %edx #edx = C[i]
+  			movl %ecx, (%edx, %ebx, ws) #C[i][j] = A[i][j] + B[i][j]
+
+  			incl %ebx
+  			jmp inner_loop
+  			end_inner_loop:
+
+  		incl %eax #++i
+  		jmp outer_loop
+  	end_outer_loop:
+
+  done:
+  	nop #do nothing
+
+# for the debugger if you want to display the array you'd do
+# ((int**)&A)[0][0]@4
+# there are some optimizations, but they wouldn't be a direct translation
+# for example, the only parts that changes in the inner for loop is j
+# therefore, we could've calculated C[i], A[i], and B[i] in the outer for loops
+# instead of calculating it each time in the inner for loop
+
+** if you put,
+Crow2:
+  .space numCols * ws
+above A you said it would still work but not for one big chunk, why?

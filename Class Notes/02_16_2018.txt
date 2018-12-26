@@ -1,0 +1,143 @@
+# how we integrate our code into C
+# first we must talk about the Stack
+Stack:
+First, In, Last, Out
+
+esp points to the top of the stack
+- wherever esp points and all addresses higher than
+it are considered to be the stack
+
+memory is divided as follow
+text
+----
+data
+----
+stack # local variables go into the stack as well as arguments, grows down
+----
+
+----
+heap # grows up
+----
+0
+
+push src
+- add the element to top of stack
+pop dest
+- remove top most element and place in dest
+
+--------
+92 - 116
+--------
+88 - 112
+--------
+23 - 108
+--------
+17 - 104
+--------
+10 - 100  <-- esp
+--------
+-2 - 96
+--------
+3 - 92
+--------
+27 - 88
+
+push $17
+
+--------
+92 - 116
+--------
+88 - 112
+--------
+23 - 108
+--------
+17 - 104
+--------
+10 - 100
+--------
+17 - 96  <-- esp
+--------
+3 - 92
+--------
+27 - 88
+
+push $22
+
+--------
+92 - 116
+--------
+88 - 112
+--------
+23 - 108
+--------
+17 - 104
+--------
+10 - 100
+--------
+17 - 96
+--------
+22 - 92  <-- esp
+--------
+27 - 88
+
+pop %eax # eax = 22
+
+--------
+92 - 116
+--------
+88 - 112
+--------
+23 - 108
+--------
+17 - 104
+--------
+10 - 100
+--------
+17 - 96  <-- esp
+--------
+22 - 92
+--------
+27 - 88
+
+pop %ebx # ebx = 17
+
+--------
+92 - 116
+--------
+88 - 112
+--------
+23 - 108
+--------
+17 - 104
+--------
+10 - 100  <-- esp
+--------
+17 - 96
+--------
+22 - 92
+--------
+27 - 88
+
+# challenge: rewrite push and pop using other assembly instructions
+push src
+subl $4, %esp # make space
+movl src, (%esp) # place element on top of stack
+
+pop dest
+movl (%esp), dest # copy value to dest
+addl $4, %esp # remove from stack
+
+# stack overflow if you ask for too much space and cross into the heap's memory
+# all stack accesses are in terms of words
+# all accesses have to be in multiples of four for a 32 bit machine
+
+call fun
+- saves the return addr. on top of the stack
+# a function can be called anywhere
+# therefore, you have to be able to go back to that place you were called from
+- jmp fun
+----------
+ret
+  pop %eip # take what's on the top of the stack and put it in eip
+  # notice that the computer doesn't know what's on the top of the Stack
+  # it assumes that when you call ret that the return address is on the top

@@ -1,0 +1,240 @@
+# if you want gcc to pick the register, which is a good idea, use r
+# we need to be able to refer to our variables inside our inline assembly
+# but we don't know which register they're in, so we look at their position
+# in the argument list. We start counting from zero, with zero being our
+# our first output, going up to n-1 where n-1 being our final input.
+# in this case a will be 0, and b will be 1
+# what we're saying is add what's in register 1, which is the b, to
+# the register 0. After the code is run, whatever is in register 0
+# will be copied to variable a
+int anyRegAdd(int a, int b){
+	//add a and b together but allow gcc or g++
+	//to determine which registers to place a and b into
+	__asm__(
+	"addl %1, %0" :
+	"+r" (a): //r means that gcc can store the variable in any general purpose register
+	"r" (b) :
+	"cc"
+	);
+	return a;
+}
+
+# in case it's hard to remember which register is which, we can actually assign
+# names to the registers
+int altAnyRegAdd(int a, int b){
+	//again allow gcc/g++ to choose which register
+	//to store our values in but this time we give nice names
+	//to the values instead of having to use their positions
+	__asm__(
+	"addl %[b], %[sum]" :
+	[sum] "+r" (a): //note that the names of the variables don't have to match the names that show
+									//up in the assembly.
+	[b] "r" (b): //but they can if you want them to
+	"cc"
+	);
+	return a;
+}
+
+# since registers are limited we can also specify for gcc
+# to store the value in memory
+# the symbol g means register or memory and the symbol m
+# means to stick it in memory
+# professor said he doesn't like to use g because the
+# assembly instructions will depend on wether its in a register
+# or wether its in mem
+int memAdd(int a, int b){
+	//this time we add a and b
+	//but we leave b in memory instead of putting it into a register
+	__asm__(
+	"addl %[b], %[sum]" :
+	[sum] "+g" (a): //a is stored in a register or memory but for the code to work
+									//it must be placed in a reg and gcc will be forced to put it in one
+	[b] "m" (b): // the m makes b be stored in memory
+	 "cc"
+	);
+	return a;
+
+}
+
+int anyWhereAdd(int a, int b){
+	//this time we allow gcc to store our values
+	//in any register it wants or memory
+	__asm__(
+	"addl %[b], %[sum]" :
+	[sum] "+g" (a): //the g means a general purpose register or somewhere in memory
+	[b] "g" (b):
+	"cc"
+	);
+	return a;
+
+}
+
+# the last modifier is the ampersand and it stands for early clobber
+# must use it if you want to write to your output before using all your input
+# this is mainly when you are starting to register adds, that is you allow
+# gcc to chose because gcc makes the assumption that you won't write
+# to an output before using all the inputs
+# because gcc makes this assumption, it can do something called
+# register sharing where it can map both output and inputs to the same reg
+# so it might have both and output and and input being in eax
+# this is fine becuase it assumes you won't write to your output before
+# finish using all your inputs
+# early clobber tells gcc that the register can't be shared
+# in this case 0 is result, 1 is b and 2 is a for the reg
+int clobberAdd(int a, int b){
+  int result;
+	__asm__(
+	"movl $0, %0;"
+	"movl %1, %0;" //note that registers have double % signs in front of them
+	"addl %2, %0"
+	   : //and that if you are not the last line you have to end with a ;
+	"=&r" (result) : //the = sign means that result will be overwritten with whatever value is
+									//in the associated register. In this case it is a
+	"r" (b), "r" (a) : //b will be stored in EBX and a in ECX
+	"cc" //the condition codes will be changed
+	);
+	return result;
+
+}
+
+int main(){
+	int x = 10;
+	int y = 100;
+
+	printf("%d\n", abcAdd(x,y));
+	printf("%d\n", abAdd(x,y));
+	printf("%d\n", anyRegAdd(x,y));
+	printf("%d\n", altAnyRegAdd(x,y));
+	printf("%d\n", memAdd(x,y));
+	printf("%d\n", anyWhereAdd(x,y));
+	printf("%d\n", clobberAdd(x,y));
+
+return 0;
+}
+------------------------------------------------------------------------------
+# other instructions to be considered
+Instruction: movsb, movsw, movsl
+Result: C(%edi) = C(%esi), ECX--, If Direction EDI -= 1 else EDI += 1,
+If Direction ESI -= 1 else ESI += 1 (move to the next element that comes after
+it depending on the direction flag, which is called STD, so it will advance
+you to the next element in the array)
+Description: moves whatever is pointed to by esi into destination pointed to
+by edi. whatever's pointed to by edi in memory equals to what's in esi in mem
+and it's always edi and it's always esi. its internally encoded to be able to
+do a move of two thrings from memory at once
+Instruction: stosb, stosw, stosl
+Result: C(%edi) = AL, If Direction EDI -= 1 else EDI += 1
+Description: Take whatever is in register EAX or smaller depending on the
+byte specification and go and copy that out to memory pointed to by edi
+Instruction: cmpsb, cmpsw, cmpsl
+Result: C(%esi) - C(%edi), ECX--, If Direction EDI -= 1 else EDI += 1,
+If Direction ESI -= 1 else ESI += 1
+Description: Compares the two values, it does esi - edi, it just does that
+subtraction and doesn't store it anywhere
+Instruction: scasb, scasw, scasl
+Result: AL - C(%edi), ECX--, If Direction EDI -= 1 else EDI += 1,
+Description: Compares what's in al to what's pointed to in memory by edi
+# Direction is controlled by the direction flag. To set the direction flag
+use the instruction STD. To clear the direction flag use CLD
+# If direction flag is set you will move backwards, and if it is cleared,
+it will be zero it will move forwards and keep adding
+
+# each operation has supported prefixes
+Operation: movs, Supported Prefixes: rep
+Operation: stos, Supported Prefixes: rep
+Operation: cmps, Supported Prefixes: rep, repe, repne
+Operation: scas, Supported Prefixes: rep, repe, repne
+repe means repeat while equal
+repne meants repeat while not equal
+
+JECXZ: Jump if ECX is 0, to check if ECX's value is 0
+JZ/JNZ: to check if the comparison resulted in an equality/inequality
+
+The great thing about using assembly is to use instructions like these
+because the compiler won't do so.
+
+------------------------------------------------------------------------------
+We want to set all the values pointed at a certain location in memory to
+one value.
+
+# we run rep stosb
+# the way that stos works is that it changes whatever is pointed to by edi
+# so what put into edi the ptr to the memory location we want to change
+# the value that we want to put into memory is placed into eax
+# and the number of bytes that we want to change, because we keep on repeating
+# while ecx is not zero, we put that into ecx
+# we're changing arbitrary points in memory, so we just say memory
+void my_memset(char* ptr, unsigned char value, int num_bytes){
+
+	__asm__(
+	"rep stosb"
+	:
+	//output
+	:
+	//input
+	"D"(ptr), "a" (value), "c"(num_bytes):
+	"cc", "memory"
+	);
+}
+
+We want to copy one chunk of memory to another location in memory
+
+void my_mem_cpy(char* src,char* dest, int num_bytes){
+
+	__asm__(
+	"rep movsb"
+	:
+		//output
+	:
+	//input
+	"S"(src), "D"(dest), "c" (num_bytes)
+	:
+	"cc", "memory"
+	//clober
+	);
+}
+
+We can't use cmps for string copy; we can use scas for a find function
+to see if a certain ele is in an array, assuming we know how long the
+array is. We do repne, to keep going until we find it. We can check if we
+found it by doing a JECXZ
+
+That's what this function does
+
+# sets the direction flag
+# moves -1 to ebx, because ebx is the pos, if we didn't find it then the val
+should be -1
+# scasl because you're searching an array of integers
+# if ecx is not zero then you didn't find it
+# otherwise we did, so we move ecx into ebx
+# this does the search backwards, that's why we do (ar + size - 1)
+int index(int* ar, int size, int val){
+
+	int pos;
+	__asm__(
+	//code
+	"std;"
+	"movl $-1, %%ebx;"
+	"repne scasl;"
+	"jecxz no_find;"
+	"movl %%ecx, %%ebx"
+	"no_find:"
+	:
+	//outputs
+	"b" (pos)
+	:
+	//inputs
+	"c" (size), "a" (val), "D" (ar + size - 1)
+	:
+	//clobber
+	"cc"
+	);
+
+	if(pos == -1){
+		return -1;
+	}
+	else{
+		return pos;
+	}
+
+}

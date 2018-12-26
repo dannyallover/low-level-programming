@@ -1,0 +1,70 @@
+Context switching
+- assuming 1 single core CPU
+- def: programs taking turns running so quickly that it appears
+that they are running simultaneously
+- each program runs "slower" because it isn't running constantly
+context switching is implemented with interrupts
+- inside the computer there is a component called the timer
+that emits interrupts at regular intervals
+- so control between programs switches on some multiple of
+interrupts from the timer
+context switch from a -> b
+1. save A's state
+- registers
+- flags + eip + cs
+  - grab off stack
+- OS has a process table that keeps track of all running processes. Inside
+each entry is a place to store this program's state
+2. load b's state
+- located in b's entry in the process table
+- copy all the data regs into the CPU
+- overwrite A's EIP, CS, and EFLAGS entries on the stack with B's
+---
+A's eip
+---
+A's flags
+---
+A's CS
+---
+becomes
+---
+B's eip
+---
+B's flags
+---
+B's CS
+3. start running B
+- ret
+Each process in the process table is marked either runnable or
+asleep (not running at the moment)
+- process normally enters sleep state when it is waiting for another
+process to do something on its behalf (normally OS)
+e.g.
+A B C D E
+S R R S R
+# it would only switch between B C and E
+# this is beneficial because running A and D would do nothing
+and thus waste time to run
+after the process being waited on finishes the program gets placed
+in run state
+- does not mean this program gets run right away
+there is overhead for doing a switch
+- context switching involves both hardware and software
+  - hardware: interrupts + timer
+  - software: process table + context switching interrupt handler
+System calls
+- common pieces of code that need to be run
+  - normally system dependent
+- code belongs to OS
+# e.g. reading from a file, opening a file, closing a file
+- use protected instructions frequently
+- we need to call a sys call but how to do it
+- switch to the OS using an interrupt
+  - will cause us to go from user mode to kernel and then we can use
+  protected insts
+int is for software interrupts
+  - int interrupt #
+  - int $0x80 #0x80 for system calls
+  - eax holds the call # for the system cal
+  we want to do
+  - ebx, ecx, holds arguments, 

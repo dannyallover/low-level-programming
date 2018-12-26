@@ -1,0 +1,81 @@
+// went over matrix addition using the stack
+
+# new instruction called leal
+# it stands for load effective address long
+# the first argument is always in the advanced indexing mode
+leal d(o,i,s), dest # is roughly equal to the & operator in C
+dest = d + o + i * s # the result of the operation
+# how is this different then move?
+# it's different becuase it's giving you the address of the value
+# it's not accessing memory
+# movl gives you dest = mem[d + o + i * s]
+
+short* a
+d = &(a[c])
+d = &*(a + c)
+# assume that a is in eax and c is in ecx
+# how would we write this using leal?
+leal (%eax, %ecx, 2), %edx
+
+d = a + 1 + c
+leal 1 x 2(%eax, %ecx, 2), %edx
+
+# assume that x, y and z are ints
+# and are in edx, eax and ebx respectively
+x = y + z + 20
+leal 20(%eax, %ebx), %edx
+
+foo() {
+  int x = 7
+  int *p = &x
+}
+# x is an equ and we put the address of x in eax
+leal x(%ebp), %eax
+# this accesses memory, however, because we aren't using leal
+movl %eax, p(%ebp)
+
+------------------------------------------------------------------
+//rec_sum.s
+
+.global rec_sum
+.equ ws, 4
+
+/*
+  int rec_sum(int* nums, int len) {
+    if(len == 0) {
+      return 0;
+    } else {
+      return nums[0] + rec_sum(nums + 1, len - 1)
+    }
+  }
+*/
+
+rec_sum:
+  prologue:
+    push %ebp
+    movl %esp, %ebp
+
+    .equ num, 2 * ws #(%ebp)
+    .equ len, 3 * ws #(%ebp)
+
+    if:
+      cmpl $0, len(%ebp)
+      jnz else
+      movl $0, %eax
+      jmp epilogue
+    else:
+      # return nums[0] + rec_sum(nums + 1, len - 1)
+      movl len(%ebp), %eax
+      decl %eax #eax = len - 1
+      push %eax
+      movl nums(%ebp), %eax %eax - nums
+      leal 1*ws(%eax), %eax
+      push %eax
+      call rec_sum
+      addl $2*ws, %esp # clear args
+      movl nums(%ebp), %ecx #ecx = nums
+      addl (%ecx), %eax # eax the return value
+  epilogue:
+  movl %ebp, %esp
+  pop %ebp
+  ret

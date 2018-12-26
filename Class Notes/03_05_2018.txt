@@ -1,0 +1,83 @@
+I/O
+- need to access devices
+- how to address them?
+
+1. I/O mapped I/O
+  - separate memory and I/O addr space
+  - need different insts to access each
+Intel
+I/O: Read = in, write = out
+mem: Read = mov, write = mov
+
+2. memory mapped I/O
+  - reserve a small amount of memory of addresses for I/O devices, rest is for
+  mem
+  - single unified addr space
+  -one set of insts to access both mem and I/O
+  - I/O: mov
+  - mem: mov
+
+Visualize:
+I/O mapped
+|0|1|2|| (I/O)
+|0|1|2|| (mem)
+dis: more insts
+more bus lines
+  - I/O /mem reads/writes (am I doing an I/O operation or a mem operation)
+mem mapped
+|I/O|mem|
+0|1|2 3 4 5 ...
+adv: fewer insts
+dis: lose some mem addr (not a big trade off since not many I/O devices)
+
+accessing device:
+wait loop I/O or polling
+  - keep asking I/O device if it has input (do you have input, repeat)
+  - once it does have input
+    - read it
+    - use it
+  - ask for more input
+# CPU asking I/O device
+since I/O is slow relative to the CPU this is very inefficient as most of
+the time there is no input
+
+Interrupt driven I/O
+1. phone rings
+2. pause the movie
+3. answer the phone
+4. have your conversation
+5. go back to watching movie
+
+1. Interrupt Request Line (IRQ)
+  - when a device wants to interrupt it will assert this line
+2. Save currently running program state
+  - push eflags (interrupting device can't save these)
+  - push CS
+  - push EIP (instruction pointer)
+3. CPU asserts Interrupt acknowledge
+  - I/O device sends back interrupt Device #
+4. run the interrupt handler associated with this device
+  - Int handlers are "vectorized"
+    - table of them
+    - in each entry there is an interrupt vector that stores info about
+    the handler as well as location
+(ex:)
+0 ---> timer handler
+1 ---> keyboard handler
+2 ---> mouse
+where is this table in mem?
+IDT that holds addr of beginning of table
+OS filled in the table at boot up (IDT then points to table)
+# basically just a bunch of function pointers
+# 5. is just go run the handler associated with this interrupt
+6. Go back to interrupt program
+  - iret (return from interrupt)
+# can't use ret because we need to undo those three things that we did
+wait loop
+- all in software
+- lower latency (from the time input does arrive to the time you can use it)
+interrupt
+- adv: more efficient
+- dis: more hardware
+# use input I/O if input arrives as fast as the CPU runs
+# if it's going much slower than the CPU use waitloop I/O

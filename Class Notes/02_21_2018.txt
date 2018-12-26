@@ -1,0 +1,78 @@
+GCC C calling conventions
+1. arguments are passed on the stack
+- they are pushed in reverse order of the declaration
+2. EAX, ECX, EDX will not have live values on a function call
+- all others are assumed to contain live values
+3. the return value, if there is one, shall be placed in EAX
+
+  foo(a, b, c, d)
+  foo(10, 11, 12, 13)
+  push $13
+  push $11
+  push $10
+  call foo
+
+  # if you wanted to use esi and edi
+  foo:
+    push %esi
+    push %edi
+    movl $20, %esi
+    movl $19, %edi
+    pop %edi
+    pop %esi
+    ret
+
+4. Space for locals and temp space is made on stack.
+- locals are pushed in order of declaration
+
+Prologue: # establishes the current functions stack frame
+# which is everything between esp and ebp
+push %ebp
+movl %esp, %ebp
+subl space for locals
+save callee saved registers
+
+# example
+push %ebp
+movl %esp, %ebp
+subl $3*4, %esp
+
+foo(x, y, z)
+int a, b, c
+z # +16
+-
+y # +12
+-
+x # +8
+-
+ret addr # +4
+-
+old ebp <- ebp
+-
+a # -4
+-
+b # -8
+-
+c <- esp
+
+.equ x, 2*ws #(%ebp)
+.equ y, 3*ws #(%ebp)
+.equ z, 4*ws #(%ebp)
+.equ a, -1*ws #(%ebp)
+.equ b, -1*ws #(%ebp)
+.equ c, -1*ws #(%ebp)
+
+eax = x
+movl x(%ebp), %eax
+ecx = x
+movl c(%ebp), %ecx
+b = 12
+movl $12, b(%ebp)
+
+# if you want to use esi and edi, just push them on the stack
+
+#undoes prologue
+epilogue:
+  restore used callee saved registers with pop # pop %edi, pop %esi
+  movl %ebp, %esp # clear locals
+  pop %ebp

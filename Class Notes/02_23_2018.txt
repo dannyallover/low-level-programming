@@ -1,0 +1,81 @@
+prologue:
+push %ebp
+movl %esp, %ebp
+subl space for locals
+save regs # save all registers except eax, ecx and edx.
+
+epilogue:
+restore saved regs
+movl %ebp, %esp
+pop %ebp
+ret
+--------------
+calling fun
+save any live values in eax, ecx, edx
+push args
+call fun
+clear args
+
+main
+foo(a, b){
+  uses esi, edi
+  local d, e, f
+  goo(e, d){
+    locals g
+    hoo(e, g, d){
+      no locals
+      uses ebx, esi
+    }
+  }
+}
+
+----------
+foo's b
+----------
+foo's a
+----------
+ret main
+----------
+mains ebp ###### ebp is here
+----------     #
+d              #
+----------     #
+e              #
+----------     # this is foo's stack frame, everything between ebp and esp
+f              #
+----------     #
+esi            #
+----------     #
+edi       ###### esp is here
+----------
+goo's d   # goo's d and e are copies
+----------
+goo's e
+----------
+ret foo
+----------
+foo's ebp # when you push this it's still pointing to mains ebp
+----------
+g
+----------
+hoo's d
+----------
+hoo's g
+----------
+hoo's e
+----------
+ret goo
+----------
+hoo's ebp # when you push this it's pointing to foo's ebp
+----------
+ebx
+----------
+esi
+----------
+
+access foo's e from hoo
+# ebp points to hoo's stack frame
+movl %ebp, %eax
+movl (%eax), %eax # now it's pointing to goo's stack frame
+movl (%eax), %eax # now it's pointing to foo's stack frame
+movl -2*ws(%eax), %eax

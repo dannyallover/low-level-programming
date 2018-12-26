@@ -1,0 +1,126 @@
+We did this recursive function in class
+
+/*
+	int rec_strcmp(char* str1, char* str2){
+		if(*str1 != *str2){ //first letters are different
+			return *str1 - *str2;
+		}
+		else if(*str1 == '\0' && *str2 == '\0'){ //both strings are empty
+			return 0;
+		}
+		else{
+			return rec_strcmp(str1 + 1, str2 +1);
+		}
+	}
+*/
+
+.global rec_strcmp
+
+.equ ws, 4
+.text
+rec_strcmp:
+	prologue:
+		push %ebp
+		movl %esp, %ebp
+		#make space for locals
+		#save regs
+		.equ str1, (2*ws) #(%ebp)
+		.equ str2, (3*ws) #(%ebp)
+
+	if: #if(*str1 != *str2)
+		movl str1(%ebp), %eax #eax = str1
+		movl str2(%ebp), %ecx #ecx = str2
+		movb (%eax), %al #al = *str1
+
+		cmpb %al, (%ecx)
+		jz else_if
+		#return *str1 - *str2;
+		subb (%ecx), %al
+		movsx %al, %eax #double check instruction
+		jmp epilogue
+
+	else_if: #*str1 == '\0'
+		cmpb $0, %al
+		jnz else
+		movl $0, %eax
+		jmp epilogue
+	else:
+		#return rec_strcmp(str1 + 1, str2 +1)
+		leal 1(%ecx), %ecx #ecx = str2 + 1
+		push %ecx #place str2 + 1 on the stack
+		movl str1(%ebp), %eax
+		leal 1(%eax), %eax
+		push %eax #place str2 + 1 on stack
+		call rec_strcmp
+		addl $2*ws, %esp #clear args
+
+	epilogue:
+		movl %ebp, %esp #remove locals
+		pop %ebp
+		ret
+
+--------------------------------------------------
+Now we're going to talk about in line assembly
+
+# used for inserting assembly at specific spots in a program
+
+/*
+The synax for inlined assembly is
+__asm__(
+assembly code :
+outputs :
+inputs :
+clobbered );
+
+outputs, inputs, and clobbered are all optional
+*/
+
+# assembly code goes inside a string
+# registers have an extra precent sign, to escape special meaning of percent
+# ; to terminate instruction
+# for the output section the = sign means that after the assembly code runs
+take whatever's in this register, in this case eax, and put it in the result
+# a is eax, b is ebx, c is ecx, d is edx, D is edi, S is esi
+# the next section is the input section and actually gets run first
+# it says, in this case, copy whatever's in var b in ebx and var a in ecx
+# clobbered section is for whatever registers that are not inputs or outputs
+# cc stands for the condition codes, which is the flag register in assembly
+# cc will always be there
+
+int abcAdd(int a, int b){
+	//add a and b together
+	//placing the result in result
+	int result;
+	__asm__(
+	"movl %%ebx, %%eax;" //note that registers have double % signs in front of them
+	"addl %%ecx, %%eax;"
+	"movl $12, %%edi" : //and that if you are not the last line you have to end with a ;
+	"=a" (result) : //the = sign means that result will be overwritten with whatever value is
+									//in the associated register. In this case it is a
+	"b" (b), "c" (a) : //b will be stored in EBX and a in ECX
+	"cc", "%edi" //the condition codes will be changed
+	);
+
+
+	return result;
+}
+
+# another modifier besides = is + and + means that the var is an input and
+# an output, but the + operator can only be applied in the output section.
+# before the assembly code is run, whatever is an variable a will be copied
+# to eax (in this case), and after the code is run, whatever is in eax will
+# be copied to a
+int abAdd(int a, int b){
+	//use the inline assembly to add a and b together
+	//storing the result in a
+	//and being explicit about which registers
+	//should contain what values
+	__asm__(
+	"addl %%ebx, %%eax" :
+	"+a" (a) : //store a in register a. the + in front of a means it is is an input and output register
+	 "b" (b) : //store b in register b
+	 "cc"
+	);
+
+	return a;
+}

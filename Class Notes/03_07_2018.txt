@@ -1,0 +1,62 @@
+When does the CPU respond to an interrupt?
+the CPU checks the interrupt line at the end of every instruction
+  Fetch
+  Decode
+  Execute
+  Write
+  Check for interrupt
+What happens when an interrupt occurs during the handling of another
+interrupt?
+1. ignore interrupts inside the interrupt handler
+  - handler disables interrupt
+2. prioritize interrupts
+  - interrupt the handler if the new interrupt is more
+  important
+Operating System (OS)
+- we will assume a single CPU with a single core
+# it can only run one program at once
+- the OS is just a program
+- the OS only has a special privileges because it is the "first"
+program run
+if your program is running is the OS running?
+- No it can't
+# we said it's a single core CPU
+- control can switch between 2 programs if
+1. voluntarily relinquishes control through a system call
+# example: exit
+2. Interrupt
+What does the OS do?
+- manage the resources of the computer and make sure they are
+"fairly" distributed
+# operating system is just a resource manager
+1. Memory management
+2. Process management
+3. I/O management
+4. File system management
+If you want to run a program, say a.out, what do you do?
+1. at the shell you type ./a.out
+# the shell is not the operating system, it's some other program
+2. shell calls execve(.\a.out)
+3. locate a.out on the disk
+4. read a.out's header
+  - contains info about program
+  - size
+  - starting point aka _start
+5. checks mem allocation table for a spot big enough
+to put a.out and copies it there and then updates mem alloc table
+6. save current state
+-> set esp to a.outs stack
+7. run a.out by jumping to a.out's _start
+a.out is now running
+OS boot up
+Boot loader
+- small simple program that loads the OS
+- is stored on a ROM
+- when an intel CPU turns on eip = 0xfffffff0
+- it is located -> #there at 0xfffffff0
+boot loader reads the first disk sector into
+memory and then jumps to that location in mem
+- OS will have placed a portion of itself at this
+first disk sector when you installed it
+- this portion of the OS reads the rest of the OS in
+- the OS is now running

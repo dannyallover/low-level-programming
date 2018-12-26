@@ -1,0 +1,61 @@
+.global_start
+.equ wordsize, 4
+
+# these dots are the preprocessor directives (the same as #include)
+# .global means make this program available to the linker
+
+what's the preprocessor and what's the linker
+
+.data
+# is where all our global variables will be
+
+.text
+# is the beginning of our machine instructions
+
+_start:
+# is where our program starts, think of it like main
+
+General Purpose Registers: EAX, EBX, ECX, EDX, ESI, EDI
+EBP is used as the base pointer in C code. Can be used as a general register
+in stand alone code.
+# note: we can use EBP until we start integrating code to C
+# what exactly is the base and stack pointer?
+ESP is the stack pointer.
+
+EAX (32 bits)
+AX (lower 16 bits of EAX)
+AH (the upper 8 bits of AX)
+AL (the lower 8 bits of AX)
+# note: if you modify AX that modifies EAX
+
+Intel is a 2 operand machine
+op srct, dest
+dest op = src
+
+mips 3operand
+op dest, src1, src2
+dest = src1 op src2
+
+movl # every instruction has l, w, or b; the l means that it's 4 bytes big
+# w is 2 bytes, so you would do move $0 to AX
+
+i < x_len == i - x_len < 0
+# negation: i - x_len >= 0
+
+cmpl $x_len, %ecx
+# doesn't actually store anything in register
+# just sets the flag bits
+
+# difference between arithmetic right shift and logical right shift?
+
+# I thought this was useful
+
+.equ x_len, 10
+
+.data
+x:
+  .rept x_len
+    .long 5 * 2 + 2
+  .endr
+
+.text
